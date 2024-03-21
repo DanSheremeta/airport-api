@@ -11,8 +11,22 @@ class Crew(models.Model):
 
 
 class Airport(models.Model):
+    AIRPORT_TYPES_CHOICES = (
+        ("civilian", "Civilian"),
+        ("military", "Military"),
+        ("cargo", "Cargo"),
+    )
+
     name = models.CharField(max_length=255)
-    closest_big_city = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
+    country = models.CharField(max_length=255)
+    airport_type = models.CharField(
+        max_length=50,
+        default="civilian",
+        choices=AIRPORT_TYPES_CHOICES
+    )
+    icao_code = models.CharField(max_length=4)
+    iata_code = models.CharField(max_length=3)
 
     class Meta:
         ordering = ("name",)
