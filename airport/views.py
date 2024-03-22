@@ -1,6 +1,7 @@
 from django.db.models import F, Count
 from rest_framework import mixins
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
 from airport.permissions import IsAdminOrIfAuthenticatedReadOnly
@@ -9,7 +10,7 @@ from airport.models import (
     Airport,
     Airplane,
     Route,
-    Flight,
+    Flight, Order,
 )
 from airport.serializers import (
     CrewSerializer,
@@ -21,6 +22,8 @@ from airport.serializers import (
     FlightSerializer,
     FlightListSerializer,
     FlightDetailSerializer,
+    OrderSerializer,
+    OrderListSerializer,
 )
 
 
@@ -136,3 +139,30 @@ class FlightViewSet(
             return FlightDetailSerializer
 
         return FlightSerializer
+
+
+class OrderViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    GenericViewSet,
+):
+    queryset = (
+        Order.objects
+        .select_related("tickets__flight__airplane", "tickets__flight__route")
+        .prefetch_related("tickets__flight__crew")
+    )
+    serializer_class = OrderSerializer
+    pagination_class = DefaultPagination
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return OrderListSerializer
+
+        return OrderSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
