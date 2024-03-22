@@ -6,6 +6,10 @@ class Crew(models.Model):
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
 
+    @property
+    def full_name(self):
+        return f"{self.last_name} {self.first_name}"
+
     def __str__(self):
         return f"{self.last_name} {self.first_name}"
 
@@ -77,6 +81,10 @@ class Airplane(models.Model):
 
     class Meta:
         ordering = ("name",)
+
+    @property
+    def capacity(self) -> int:
+        return self.rows * self.seats_in_row
 
     def __str__(self):
         return f"{self.name} ({self.airplane_type})"
