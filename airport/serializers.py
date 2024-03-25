@@ -5,6 +5,7 @@ from rest_framework import serializers
 from airport.models import (
     Crew,
     Airport,
+    AirplaneType,
     Airplane,
     Route,
     Flight,
@@ -31,6 +32,12 @@ class AirportSerializer(serializers.ModelSerializer):
             "icao_code",
             "iata_code",
         )
+
+
+class AirplaneTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AirplaneType
+        fields = "__all__"
 
 
 class AirplaneSerializer(serializers.ModelSerializer):

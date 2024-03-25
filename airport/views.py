@@ -1,4 +1,4 @@
-from django.db.models import F, Count
+from django.db.models import F, Count, Q
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -12,11 +12,13 @@ from airport.models import (
     Airport,
     Airplane,
     Route,
-    Flight, Order,
+    Flight,
+    Order, AirplaneType,
 )
 from airport.serializers import (
     CrewSerializer,
     AirportSerializer,
+    AirplaneTypeSerializer,
     AirplaneSerializer,
     AirplaneListSerializer,
     AirplaneImageSerializer,
@@ -57,12 +59,22 @@ class AirportViewSet(
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
+class AirplaneTypeViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet
+):
+    queryset = AirplaneType.objects.all()
+    serializer_class = AirplaneTypeSerializer
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
+
+
 class AirplaneViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     GenericViewSet,
 ):
-    queryset = Airplane.objects.all()
+    queryset = Airplane.objects.all().select_related("airplane_type")
     pagination_class = DefaultPagination
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
@@ -72,6 +84,39 @@ class AirplaneViewSet(
         if self.action == "upload_image":
             return AirplaneImageSerializer
         return AirplaneSerializer
+
+    @staticmethod
+    def _params_to_ints(qs):
+        """Converts a list of string IDs to a list of integers"""
+        return [int(str_id) for str_id in qs.split(",")]
+
+    def get_queryset(self):
+        """Retrieve the airplanes with filters"""
+        name = self.request.query_params.get("name")
+        airplane_types = self.request.query_params.get("airplane_types")
+        # capacity_gte = self.request.query_params.get("capacity_gte")
+        # capacity_lte = self.request.query_params.get("capacity_lte")
+
+        queryset = self.queryset
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if airplane_types:
+            airplane_type_ids = self._params_to_ints(airplane_types)
+            queryset = queryset.filter(airplane_type__id__in=airplane_type_ids)
+
+        # if capacity_gte:
+        #     queryset = queryset.filter(
+        #        F("rows") * F("seats_in_row") >= int(capacity_gte)
+        #     )
+        #
+        # if capacity_lte:
+        #     queryset = queryset.filter(
+        #        F("rows") * F("seats_in_row") <= int(capacity_lte)
+        #     )
+
+        return queryset.distinct()
 
     @action(
         methods=["POST"],
@@ -96,7 +141,10 @@ class RouteViewSet(
     mixins.RetrieveModelMixin,
     GenericViewSet
 ):
-    queryset = Route.objects.all()
+    queryset = (
+        Route.objects.all()
+        .select_related("source", "destination")
+    )
     pagination_class = DefaultPagination
 
     def get_serializer_class(self):
@@ -116,7 +164,11 @@ class FlightViewSet(
 ):
     queryset = (
         Flight.objects.all()
-        .select_related("route", "airplane")
+        .select_related(
+            "route__source",
+            "route__destination",
+            "airplane__airplane_type",
+        )
         .prefetch_related("crew")
         .annotate(
             tickets_available=(
@@ -135,7 +187,7 @@ class FlightViewSet(
 
     def get_queryset(self):
         """Retrieve the flights with filters"""
-        airplanes = self.request.query_params.get("airplains")
+        airplanes = self.request.query_params.get("airplanes")
         routes = self.request.query_params.get("routes")
         date = self.request.query_params.get("date")
 
