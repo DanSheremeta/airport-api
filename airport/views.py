@@ -1,4 +1,6 @@
 from django.db.models import F, Count, Q
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -135,6 +137,23 @@ class AirplaneViewSet(
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "airplane_types",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter by airplane_type ids (ex. ?airplane_types=1,7)",
+            ),
+            OpenApiParameter(
+                "name",
+                type=OpenApiTypes.STR,
+                description="Filter by airplane name (ex. ?name=boeing)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class RouteViewSet(
     mixins.CreateModelMixin,
@@ -215,6 +234,28 @@ class FlightViewSet(
             return FlightDetailSerializer
 
         return FlightSerializer
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "airplanes",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter by airplane ids (ex. ?airplanes_ids=3,12)",
+            ),
+            OpenApiParameter(
+                "routes",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter by routes ids (ex. ?routes=4,7)",
+            ),
+            OpenApiParameter(
+                "date",
+                type=OpenApiTypes.DATE,
+                description="Filter by flight date (ex. ?date=2024-05-01)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class OrderViewSet(
