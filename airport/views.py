@@ -72,6 +72,7 @@ class AirplaneTypeViewSet(
 class AirplaneViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
     GenericViewSet,
 ):
     queryset = Airplane.objects.all().select_related("airplane_type")
@@ -79,7 +80,7 @@ class AirplaneViewSet(
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
     def get_serializer_class(self):
-        if self.action == "list":
+        if self.action in ("list", "retrieve"):
             return AirplaneListSerializer
         if self.action == "upload_image":
             return AirplaneImageSerializer
