@@ -5,8 +5,8 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ("id", "email", "first_name", "last_name", "password", "is_staff",)
-        read_only_fields = ("is_staff",)
+        fields = ("id", "email", "first_name", "last_name", "avatar", "password", "is_staff",)
+        read_only_fields = ("is_staff", "avatar")
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
 
     def create(self, validated_data):
@@ -22,3 +22,9 @@ class UserSerializer(serializers.ModelSerializer):
             user.save()
 
         return user
+
+
+class UserImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ("id", "avatar")
