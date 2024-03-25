@@ -34,6 +34,7 @@ class AirportSerializer(serializers.ModelSerializer):
 
 
 class AirplaneSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Airplane
         fields = (
@@ -49,6 +50,7 @@ class AirplaneListSerializer(AirplaneSerializer):
     airplane_type = serializers.SlugRelatedField(
         many=False, read_only=True, slug_field="name"
     )
+    airplane_image = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Airplane
@@ -57,17 +59,17 @@ class AirplaneListSerializer(AirplaneSerializer):
             "name",
             "airplane_type",
             "capacity",
+            "airplane_image",
         )
 
 
-class RouteSerializer(serializers.ModelSerializer):
-    source = serializers.SlugRelatedField(
-        many=False, read_only=True, slug_field="name"
-    )
-    destination = serializers.SlugRelatedField(
-        many=False, read_only=True, slug_field="name"
-    )
+class AirplaneImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Airplane
+        fields = ("id", "airplane_image")
 
+
+class RouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Route
         fields = (
@@ -76,6 +78,15 @@ class RouteSerializer(serializers.ModelSerializer):
             "destination",
             "distance",
         )
+
+
+class RouteListSerializer(RouteSerializer):
+    source = serializers.SlugRelatedField(
+        many=False, read_only=True, slug_field="name"
+    )
+    destination = serializers.SlugRelatedField(
+        many=False, read_only=True, slug_field="name"
+    )
 
 
 class FlightSerializer(serializers.ModelSerializer):
@@ -125,8 +136,8 @@ class FlightListSerializer(FlightSerializer):
 
 
 class FlightDetailSerializer(FlightSerializer):
-    route = RouteSerializer(many=False, read_only=True)
-    airplane = AirplaneSerializer(many=False, read_only=True)
+    route = RouteListSerializer(many=False, read_only=True)
+    airplane = AirplaneListSerializer(many=False, read_only=True)
     crew = serializers.SlugRelatedField(
         many=True, read_only=True, slug_field="full_name"
     )
@@ -143,7 +154,7 @@ class FlightDetailSerializer(FlightSerializer):
         )
 
 
-class RouteDetailSerializer(RouteSerializer):
+class RouteDetailSerializer(RouteListSerializer):
     flights = serializers.HyperlinkedRelatedField(
         many=True,
         read_only=True,

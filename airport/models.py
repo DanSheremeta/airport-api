@@ -1,7 +1,12 @@
+import os
+import uuid
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.text import slugify
 from django.utils.translation import gettext as _
+
 
 class Crew(models.Model):
     first_name = models.CharField(max_length=150)
@@ -70,6 +75,13 @@ class AirplaneType(models.Model):
         return self.name
 
 
+def airplane_image_file_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+    filename = f"{slugify(instance.name)}-{uuid.uuid4()}{extension}"
+
+    return os.path.join("uploads/airplanes/", filename)
+
+
 class Airplane(models.Model):
     name = models.CharField(max_length=255)
     rows = models.IntegerField()
@@ -78,6 +90,10 @@ class Airplane(models.Model):
         AirplaneType,
         on_delete=models.CASCADE,
         related_name="airplanes",
+    )
+    airplane_image = models.ImageField(
+        null=True,
+        upload_to=airplane_image_file_path,
     )
 
     class Meta:
@@ -89,6 +105,7 @@ class Airplane(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.airplane_type})"
+
 
 class Flight(models.Model):
     route = models.ForeignKey(

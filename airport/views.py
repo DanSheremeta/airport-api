@@ -1,8 +1,10 @@
 from django.db.models import F, Count
-from rest_framework import mixins
+from rest_framework import mixins, status
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from airport.permissions import IsAdminOrIfAuthenticatedReadOnly
 from airport.models import (
@@ -17,7 +19,9 @@ from airport.serializers import (
     AirportSerializer,
     AirplaneSerializer,
     AirplaneListSerializer,
+    AirplaneImageSerializer,
     RouteSerializer,
+    RouteListSerializer,
     RouteDetailSerializer,
     FlightSerializer,
     FlightListSerializer,
@@ -56,7 +60,7 @@ class AirportViewSet(
 class AirplaneViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
-    GenericViewSet
+    GenericViewSet,
 ):
     queryset = Airplane.objects.all()
     pagination_class = DefaultPagination
@@ -65,7 +69,25 @@ class AirplaneViewSet(
     def get_serializer_class(self):
         if self.action == "list":
             return AirplaneListSerializer
+        if self.action == "upload_image":
+            return AirplaneImageSerializer
         return AirplaneSerializer
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="upload-image",
+        permission_classes=[IsAdminUser]
+    )
+    def upload_image(self, request, pk=None):
+        item = self.get_object()
+        serializer = self.get_serializer(item, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RouteViewSet(
@@ -78,9 +100,10 @@ class RouteViewSet(
     pagination_class = DefaultPagination
 
     def get_serializer_class(self):
+        if self.action == "list":
+            return RouteListSerializer
         if self.action == "retrieve":
             return RouteDetailSerializer
-
         return RouteSerializer
 
 
