@@ -33,5 +33,9 @@ docker-compose up
 
 ## Getting access
 
-- create user via /api/user/register/
-- get access token via /api/user/token/
+- create user via /api/v1/user/register/
+- get access token via /api/v1/user/token/
+
+## Documentation
+
+- Documentation available via /api/v1/doc/swagger/
