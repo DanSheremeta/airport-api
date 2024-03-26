@@ -97,10 +97,10 @@ class AirplaneViewSet(
         """Retrieve the airplanes with filters"""
         name = self.request.query_params.get("name")
         airplane_types = self.request.query_params.get("airplane_types")
-        # capacity_gte = self.request.query_params.get("capacity_gte")
-        # capacity_lte = self.request.query_params.get("capacity_lte")
+        capacity_gte = self.request.query_params.get("capacity_gte")
+        capacity_lte = self.request.query_params.get("capacity_lte")
 
-        queryset = self.queryset
+        queryset = self.queryset.annotate(total_capacity=F("rows") * F("seats_in_row"))
 
         if name:
             queryset = queryset.filter(name__icontains=name)
@@ -109,15 +109,11 @@ class AirplaneViewSet(
             airplane_type_ids = self._params_to_ints(airplane_types)
             queryset = queryset.filter(airplane_type__id__in=airplane_type_ids)
 
-        # if capacity_gte:
-        #     queryset = queryset.filter(
-        #        F("rows") * F("seats_in_row") >= int(capacity_gte)
-        #     )
-        #
-        # if capacity_lte:
-        #     queryset = queryset.filter(
-        #        F("rows") * F("seats_in_row") <= int(capacity_lte)
-        #     )
+        if capacity_gte:
+            queryset = queryset.filter(total_capacity__gte=capacity_gte)
+
+        if capacity_lte:
+            queryset = queryset.filter(total_capacity__lte=capacity_lte)
 
         return queryset.distinct()
 
@@ -148,6 +144,16 @@ class AirplaneViewSet(
                 "name",
                 type=OpenApiTypes.STR,
                 description="Filter by airplane name (ex. ?name=boeing)",
+            ),
+            OpenApiParameter(
+                "capacity_gte",
+                type=OpenApiTypes.NUMBER,
+                description="Filter by capacity greater than equals (ex. ?capacity_gte=100)",
+            ),
+            OpenApiParameter(
+                "capacity_lte",
+                type=OpenApiTypes.NUMBER,
+                description="Filter by capacity less than equals (ex. ?capacity_lte=150)",
             ),
         ]
     )
@@ -192,8 +198,8 @@ class FlightViewSet(
         .prefetch_related("crew")
         .annotate(
             tickets_available=(
-                F("airplane__rows") * F("airplane__seats_in_row")
-                - Count("tickets")
+                    F("airplane__rows") * F("airplane__seats_in_row")
+                    - Count("tickets")
             )
         )
     )
